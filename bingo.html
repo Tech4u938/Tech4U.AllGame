@@ -7,94 +7,102 @@
     <script src="https://cdn.jsdelivr.net/npm/playroomkit"></script>
     <style>
         :root { --blue: #00d4ff; --bg: #0a0b10; }
-        body { background: var(--bg); color: white; font-family: sans-serif; text-align: center; margin: 0; }
-        #bingo-word { font-size: 45px; font-weight: 900; letter-spacing: 10px; margin: 15px; color: #222; }
-        .letter-on { color: var(--blue); text-shadow: 0 0 10px var(--blue); }
-        #grid { display: grid; grid-template-columns: repeat(5, 1fr); width: 95vw; max-width: 400px; height: 95vw; max-height: 400px; margin: 0 auto; gap: 5px; }
-        .cell { background: #161b22; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: bold; cursor: pointer; border-radius: 8px; }
+        body { background: var(--bg); color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 10px; }
+        
+        #bingo-word { font-size: 40px; font-weight: 900; letter-spacing: 10px; margin: 10px; color: #222; }
+        .lit { color: var(--blue); text-shadow: 0 0 10px var(--blue); }
+
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; width: 100%; max-width: 400px; margin: 0 auto; }
+        .cell { background: #161b22; height: 65px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; border-radius: 8px; cursor: pointer; }
         .marked { background: var(--blue) !important; color: black; }
-        .setup-input { background: none; border: 1px solid var(--blue); color: white; width: 40px; text-align: center; font-size: 20px; }
-        .hidden { display: none; }
+
+        .btn { background: var(--blue); color: black; border: none; padding: 15px 30px; border-radius: 10px; font-weight: bold; margin-top: 15px; width: 100%; max-width: 300px; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <!-- Setup Phase -->
-    <div id="setup">
+    <div id="setup-area">
         <h2 style="color:var(--blue)">Fill Your Board (1-25)</h2>
-        <div id="setup-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; width: 300px; margin: 0 auto;"></div>
-        <button id="ready-btn" onclick="startPlay()" style="margin-top:20px; padding:15px; background:var(--blue); border:none; border-radius:10px; font-weight:bold; display:none;">START BINGO</button>
+        <p style="font-size:12px">Tap a cell to change its number</p>
+        <div id="grid-setup" class="grid"></div>
+        <button class="btn" onclick="startPlay()">I'M READY TO PLAY</button>
     </div>
 
-    <!-- Play Phase -->
-    <div id="play" class="hidden">
+    <div id="play-area" class="hidden">
         <div id="bingo-word">
             <span id="L0">B</span><span id="L1">I</span><span id="L2">N</span><span id="L3">G</span><span id="L4">O</span>
         </div>
-        <div id="grid"></div>
-        <p id="msg" style="color:var(--blue)"></p>
-        <button onclick="location.href='index.html'" style="color:#555; background:none; border:none; margin-top:20px;">Exit</button>
+        <div id="grid-play" class="grid"></div>
+        <p id="msg" style="color:var(--blue); font-weight:bold;"></p>
+        <button class="btn" onclick="location.href='index.html'" style="background:#222; color:white;">EXIT</button>
     </div>
 
 <script>
     const { insertCoin, setState, getState } = Playroom;
-    let myBoard = Array(25).fill(null);
+    let board = [];
     let marked = [];
-    let setupIndex = 0;
 
-    // Build Setup Grid
-    const sg = document.getElementById('setup-grid');
-    for(let i=0; i<25; i++) {
-        const d = document.createElement('div');
-        d.style = "height:50px; background:#161b22; border:1px solid #333; display:flex; align-items:center; justify-content:center;";
-        d.onclick = () => {
-            if(myBoard[i] === null) {
-                let n = prompt("Enter number for this cell (1-25):");
-                if(n > 0 && n <= 25 && !myBoard.includes(parseInt(n))) {
-                    myBoard[i] = parseInt(n);
-                    d.innerText = n;
-                    setupIndex++;
-                    if(setupIndex === 25) document.getElementById('ready-btn').style.display = 'block';
+    // 1. Generate Setup Board (Auto-filled 1-25)
+    const setupDiv = document.getElementById('grid-setup');
+    for(let i=1; i<=25; i++) board.push(i);
+    // Shuffle
+    board.sort(() => Math.random() - 0.5);
+
+    function renderSetup() {
+        setupDiv.innerHTML = '';
+        board.forEach((num, i) => {
+            const c = document.createElement('div');
+            c.className = "cell";
+            c.innerText = num;
+            c.onclick = () => {
+                let n = prompt("Change number "+num+" to:", num);
+                if(n > 0 && n <= 25) { board[i] = parseInt(n); renderSetup(); }
+            };
+            setupDiv.appendChild(c);
+        });
+    }
+    renderSetup();
+
+    // 2. Start Multiplayer
+    async function startPlay() {
+        document.getElementById('setup-area').classList.add('hidden');
+        document.getElementById('play-area').classList.remove('hidden');
+        
+        await insertCoin({ gameId: "lSO33kfiKxPFBkaFheob" });
+        renderPlay();
+        
+        // Multiplayer Sync
+        setInterval(() => {
+            const last = getState("call");
+            if(last) {
+                let idx = board.indexOf(last);
+                if(idx !== -1 && !marked.includes(idx)) {
+                    marked.push(idx);
+                    renderPlay();
+                    checkBingo();
                 }
             }
-        };
-        sg.appendChild(d);
+        }, 1000);
     }
 
-    async function startPlay() {
-        document.getElementById('setup').classList.add('hidden');
-        document.getElementById('play').classList.remove('hidden');
-        await insertCoin({ gameId: "lSO33kfiKxPFBkaFheob" });
-        render();
-        setInterval(sync, 1000);
-    }
-
-    function render() {
-        const g = document.getElementById('grid'); g.innerHTML = '';
-        myBoard.forEach((num, i) => {
+    function renderPlay() {
+        const playDiv = document.getElementById('grid-play');
+        playDiv.innerHTML = '';
+        board.forEach((num, i) => {
             const c = document.createElement('div');
             c.className = "cell" + (marked.includes(i) ? " marked" : "");
             c.innerText = num;
-            c.onclick = () => setState("called", num);
-            g.appendChild(c);
+            c.onclick = () => setState("call", num);
+            playDiv.appendChild(c);
         });
     }
 
-    function sync() {
-        const last = getState("called");
-        if (last) {
-            let idx = myBoard.indexOf(last);
-            if (idx !== -1 && !marked.includes(idx)) {
-                marked.push(idx);
-                render();
-                checkBingo();
-            }
-        }
-    }
-
+    // 3. Winning Logic (Rows, Cols, Diags ONLY)
     function checkBingo() {
         let lines = 0;
         const m = marked;
+
         // Rows
         for(let r=0; r<5; r++) if([0,1,2,3,4].every(i => m.includes(i + r*5))) lines++;
         // Cols
@@ -103,14 +111,15 @@
         if([0,6,12,18,24].every(i => m.includes(i))) lines++;
         if([4,8,12,16,20].every(i => m.includes(i))) lines++;
 
+        // Light up B-I-N-G-O letters
         for(let i=0; i<5; i++) {
-            if(lines > i) document.getElementById('L'+i).classList.add('letter-on');
+            if(lines > i) document.getElementById('L' + i).classList.add('lit');
         }
 
         if(lines >= 5) {
-            document.getElementById('msg').innerText = "🏆 YOU WIN! +50 COINS";
+            document.getElementById('msg').innerText = "🏆 BINGO! YOU EARNED 100 COINS!";
             let c = parseInt(localStorage.getItem('t4u_coins') || 0);
-            localStorage.setItem('t4u_coins', c + 50);
+            localStorage.setItem('t4u_coins', c + 100);
         }
     }
 </script>
