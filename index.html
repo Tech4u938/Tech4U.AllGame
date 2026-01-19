@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech4U AllGame | Multiplayer Hub</title>
+    <script src="https://cdn.jsdelivr.net/npm/playroomkit"></script>
+    <style>
+        :root { --primary: #00d4ff; --bg: #0a0b10; --card: #161b22; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; text-align: center; }
+        header { padding: 30px; background: linear-gradient(to bottom, #111, var(--bg)); }
+        .logo { font-size: 3rem; font-weight: 800; color: var(--primary); text-shadow: 0 0 10px rgba(0,212,255,0.5); }
+        
+        /* AD SYSTEM */
+        #ad-banner { 
+            background: #1c1c1c; width: 100%; max-width: 728px; height: 90px; 
+            margin: 20px auto; display: flex; align-items: center; justify-content: center;
+            border: 1px solid #333; border-radius: 8px; overflow: hidden;
+        }
+
+        .game-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 40px; }
+        .game-card { 
+            background: var(--card); border: 1px solid #30363d; border-radius: 15px; 
+            width: 280px; padding: 20px; transition: 0.3s; cursor: pointer;
+        }
+        .game-card:hover { transform: scale(1.05); border-color: var(--primary); }
+        .game-card img { width: 100%; border-radius: 10px; margin-bottom: 15px; }
+        .play-btn { background: var(--primary); border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        
+        .admin-badge { display: none; color: #4af2a1; font-size: 12px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">Tech4U AllGame</div>
+    <p>Premium Multiplayer Web Games</p>
+</header>
+
+<!-- AD SECTION -->
+<div id="ad-banner">
+    <!-- Replace this with your AdSense code -->
+    <p style="color: #666;">Space for Ads (Tech4U Ad Network)</p>
+</div>
+
+<div class="game-container">
+    <!-- CHESS -->
+    <div class="game-card" onclick="location.href='chess.html'">
+        <img src="https://images.unsplash.com/photo-1529699211952-734e80c4d42b?auto=format&fit=crop&w=300" alt="Chess">
+        <h3>Multiplayer Chess</h3>
+        <p>Challenge anyone worldwide</p>
+        <button class="play-btn">PLAY NOW</button>
+    </div>
+
+    <!-- LUDO -->
+    <div class="game-card" onclick="location.href='ludo.html'">
+        <img src="https://images.unsplash.com/photo-1611996598538-2e358247ca4a?auto=format&fit=crop&w=300" alt="Ludo">
+        <h3>Online Ludo</h3>
+        <p>4-Player Classic Fun</p>
+        <button class="play-btn">PLAY NOW</button>
+    </div>
+
+    <!-- BINGO -->
+    <div class="game-card" onclick="location.href='bingo.html'">
+        <img src="https://images.unsplash.com/photo-1595066110006-b333469f688a?auto=format&fit=crop&w=300" alt="Bingo">
+        <h3>Mega Bingo</h3>
+        <p>Real-time lucky numbers</p>
+        <button class="play-btn">PLAY NOW</button>
+    </div>
+</div>
+
+<div id="admin-status" class="admin-badge">ADMIN ACTIVE: ADS REMOVED</div>
+
+<script>
+    // --- ADMIN SYSTEM ---
+    // Access via: yoursite.com/?admin=Tech4U2024
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'Tech4U2024') {
+        document.getElementById('ad-banner').style.display = 'none';
+        document.getElementById('admin-status').style.display = 'block';
+        localStorage.setItem('isAdmin', 'true'); // Remember admin status
+    }
+</script>
+
+</body>
+</html>
