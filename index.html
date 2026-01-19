@@ -2,61 +2,168 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tech4U AllGame Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tech4U AllGame | Global Portal</title>
+    <!-- Favicon or Icon -->
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/686/686588.png">
     <style>
-        :root { --blue: #00d4ff; --bg: #0a0b10; }
-        body { font-family: sans-serif; background: var(--bg); color: white; margin: 0; text-align: center; }
-        .stats-bar { background: #161b22; padding: 15px; display: flex; justify-content: space-around; border-bottom: 2px solid #333; align-items: center; }
-        .coin-val { color: var(--blue); font-weight: bold; font-size: 20px; }
-        .ad-box { background: #1c1c1c; width: 90%; max-width: 728px; height: 90px; margin: 20px auto; border: 1px solid #333; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
-        .game-card { background: #161b22; border: 2px solid #333; border-radius: 15px; width: 85%; max-width: 350px; padding: 20px; margin: 20px auto; border: 1px solid var(--blue); }
-        .play-btn { background: var(--blue); color: black; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 18px; }
-        button.edit { background: none; border: 1px solid #444; color: #888; font-size: 12px; padding: 5px; border-radius: 4px; }
+        /* CSS: The Look and Feel */
+        :root { --blue: #00d4ff; --bg: #0a0b10; --panel: #161b22; --border: #334155; }
+        
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: white; margin: 0; padding: 0; }
+
+        /* Profile Top Bar */
+        .profile-bar { 
+            background: var(--panel); padding: 15px; 
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 100;
+        }
+        .coin-display { color: var(--blue); font-weight: bold; font-size: 1.2rem; }
+        .name-tag { font-weight: bold; font-size: 0.9rem; }
+        .edit-btn { background: none; border: 1px solid #444; color: #888; font-size: 10px; padding: 4px 8px; border-radius: 4px; margin-left: 5px; }
+
+        /* Header Logo */
+        header { padding: 40px 20px 20px 20px; text-align: center; }
+        .logo { 
+            font-size: 2.8rem; font-weight: 900; color: var(--blue); 
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5); margin: 0; 
+            letter-spacing: -1px;
+        }
+        header p { color: #64748b; margin-top: 5px; font-size: 14px; }
+
+        /* Ads Section */
+        #ad-banner { 
+            background: #111; width: 90%; max-width: 728px; height: 90px; 
+            margin: 10px auto; border: 1px solid var(--border); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        #ad-banner p { color: #444; font-size: 12px; font-weight: bold; }
+
+        /* Games Grid */
+        .game-grid { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px; }
+        
+        .game-card { 
+            background: var(--panel); border: 2px solid var(--border); border-radius: 20px; 
+            width: 100%; max-width: 380px; padding: 20px; position: relative;
+            transition: 0.3s; box-sizing: border-box;
+        }
+        .game-card:hover { border-color: var(--blue); transform: translateY(-5px); }
+        .game-card h3 { margin: 0; color: white; font-size: 1.4rem; }
+        .game-card p { color: #94a3b8; font-size: 0.9rem; margin: 10px 0 20px 0; }
+        
+        .reward-badge { 
+            position: absolute; top: 20px; right: 20px; 
+            background: rgba(0, 212, 255, 0.1); color: var(--blue);
+            padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold;
+        }
+
+        .play-btn { 
+            background: var(--blue); color: black; border: none; padding: 14px; 
+            border-radius: 12px; font-weight: 800; cursor: pointer; width: 100%; 
+            font-size: 1rem; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        /* Admin Tag */
+        .admin-notice { color: #22c55e; font-size: 11px; margin-top: 20px; display: none; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="stats-bar">
-    <div>👤 <span id="u-name">Guest</span> <button class="edit" onclick="changeName()">Edit</button></div>
-    <div>🪙 <span id="u-coins" class="coin-val">0</span> Coins</div>
-</div>
+    <!-- USER PROFILE BAR -->
+    <div class="profile-bar">
+        <div class="name-tag">
+            👤 <span id="display-name">Guest</span>
+            <button class="edit-btn" onclick="updateName()">EDIT</button>
+        </div>
+        <div class="coin-display">
+            🪙 <span id="display-coins">0</span>
+        </div>
+    </div>
 
-<h1 style="color:var(--blue); margin-top:30px; letter-spacing: 2px;">Tech4U AllGame</h1>
+    <!-- HEADER LOGO -->
+    <header>
+        <h1 class="logo">Tech4U AllGame</h1>
+        <p>Premium Multiplayer Web Games</p>
+    </header>
 
-<div id="ad-area" class="ad-box">
-    <p style="color: #666;">[ Tech4U Advertisement ]</p>
-</div>
+    <!-- ADVERTISING BOX -->
+    <div id="ad-banner">
+        <!-- Replace this with your Google AdSense code later -->
+        <p>[ Tech4U Advertisement Network ]</p>
+    </div>
 
-<div class="game-card">
-    <h3 style="margin-top:0">🔢 Multiplayer Bingo</h3>
-    <p style="color:#888">5x5 Grid | Win to earn +50 Coins</p>
-    <button class="play-btn" onclick="location.href='bingo.html'">PLAY BINGO</button>
-</div>
+    <!-- GAME CARDS SECTION -->
+    <div class="game-grid">
 
-<div class="game-card">
-    <h3 style="margin-top:0">♟️ Pro Chess</h3>
-    <p style="color:#888">Bot or Multiplayer | Win to earn +20 Coins</p>
-    <button class="play-btn" onclick="location.href='chess.html'">PLAY CHESS</button>
-</div>
+        <!-- GAME 1: BINGO -->
+        <div class="game-card">
+            <div class="reward-badge">+100 Coins</div>
+            <h3>🔢 Multiplayer Bingo</h3>
+            <p>Traditional 5x5 board. Play with 2 to unlimited friends!</p>
+            <button class="play-btn" onclick="location.href='bingo.html'">PLAY BINGO</button>
+        </div>
 
-<script>
-    function loadProfile() {
-        let coins = localStorage.getItem('t4u_coins') || 0;
-        let name = localStorage.getItem('t4u_name') || "Player_" + Math.floor(Math.random()*999);
-        document.getElementById('u-coins').innerText = coins;
-        document.getElementById('u-name').innerText = name;
-    }
+        <!-- GAME 2: CHESS -->
+        <div class="game-card">
+            <div class="reward-badge">+20 Coins</div>
+            <h3>♟️ Pro Chess</h3>
+            <p>Challenge the Tech4U Bot or play online multiplayer matches.</p>
+            <button class="play-btn" onclick="location.href='chess.html'">PLAY CHESS</button>
+        </div>
 
-    function changeName() {
-        let n = prompt("Enter New Name:");
-        if(n) { localStorage.setItem('t4u_name', n); loadProfile(); }
-    }
+        <!-- GAME 3: TIC TAC TOE -->
+        <div class="game-card">
+            <div class="reward-badge">+10 Coins</div>
+            <h3>⭕ Tic Tac Toe ❌</h3>
+            <p>Quick 3x3 match. Earn coins fast in this classic duel.</p>
+            <button class="play-btn" onclick="location.href='tictactoe.html'">PLAY TIC TAC TOE</button>
+        </div>
 
-    if (new URLSearchParams(window.location.search).get('admin') === 'Tech4U2024') {
-        document.getElementById('ad-area').style.display = 'none';
-    }
-    loadProfile();
-</script>
+        <div id="admin-msg" class="admin-notice">ADMIN MODE: ADVERTISEMENTS REMOVED</div>
+    </div>
+
+    <script>
+        // --- PROFILE LOGIC ---
+        function loadData() {
+            // Get data from phone memory
+            const savedName = localStorage.getItem('t4u_name') || "Guest_" + Math.floor(Math.random()*999);
+            const savedCoins = localStorage.getItem('t4u_coins') || 0;
+            
+            // Save it back if it's the first time
+            localStorage.setItem('t4u_name', savedName);
+            localStorage.setItem('t4u_coins', savedCoins);
+
+            // Show on screen
+            document.getElementById('display-name').innerText = savedName;
+            document.getElementById('display-coins').innerText = savedCoins;
+        }
+
+        function updateName() {
+            const newName = prompt("Enter your player name:", localStorage.getItem('t4u_name'));
+            if (newName && newName.length < 15) {
+                localStorage.setItem('t4u_name', newName);
+                loadData();
+            } else if (newName) {
+                alert("Name too long! Max 15 characters.");
+            }
+        }
+
+        // --- ADMIN SYSTEM ---
+        // To activate, visit: yoursite.com/?admin=Tech4U2024
+        function checkAdmin() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('admin') === 'Tech4U2024') {
+                document.getElementById('ad-banner').style.display = 'none';
+                document.getElementById('admin-msg').style.display = 'block';
+                console.log("Admin Logged In: Ads Hidden");
+            }
+        }
+
+        // Run functions on load
+        window.onload = function() {
+            loadData();
+            checkAdmin();
+        };
+    </script>
 </body>
 </html>
