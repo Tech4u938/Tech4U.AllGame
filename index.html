@@ -7,43 +7,56 @@
     <style>
         :root { --blue: #00d4ff; --bg: #0a0b10; }
         body { font-family: sans-serif; background: var(--bg); color: white; margin: 0; text-align: center; }
-        .stats-bar { background: #161b22; padding: 15px; display: flex; justify-content: space-around; border-bottom: 2px solid #333; }
-        .coin-val { color: var(--blue); font-weight: bold; }
-        .ad-box { background: #1c1c1c; width: 90%; max-width: 728px; height: 90px; margin: 20px auto; border: 1px solid #333; display: flex; align-items: center; justify-content: center; }
-        .game-card { background: #161b22; border: 2px solid #333; border-radius: 15px; width: 85%; max-width: 350px; padding: 20px; margin: 20px auto; }
+        .stats-bar { background: #161b22; padding: 15px; display: flex; justify-content: space-around; border-bottom: 2px solid #333; align-items: center; }
+        .coin-val { color: var(--blue); font-weight: bold; font-size: 20px; }
+        .ad-box { background: #1c1c1c; width: 90%; max-width: 728px; height: 90px; margin: 20px auto; border: 1px solid #333; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
+        .game-card { background: #161b22; border: 2px solid #333; border-radius: 15px; width: 85%; max-width: 350px; padding: 20px; margin: 20px auto; border: 1px solid var(--blue); }
         .play-btn { background: var(--blue); color: black; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 18px; }
+        button.edit { background: none; border: 1px solid #444; color: #888; font-size: 12px; padding: 5px; border-radius: 4px; }
     </style>
 </head>
 <body>
 
 <div class="stats-bar">
-    <div>👤 <span id="u-name">Guest</span></div>
+    <div>👤 <span id="u-name">Guest</span> <button class="edit" onclick="changeName()">Edit</button></div>
     <div>🪙 <span id="u-coins" class="coin-val">0</span> Coins</div>
 </div>
 
-<h1 style="color:var(--blue); margin-top:30px;">Tech4U AllGame</h1>
+<h1 style="color:var(--blue); margin-top:30px; letter-spacing: 2px;">Tech4U AllGame</h1>
 
 <div id="ad-area" class="ad-box">
     <p style="color: #666;">[ Tech4U Advertisement ]</p>
 </div>
 
 <div class="game-card">
-    <h3>🔢 Multiplayer Bingo</h3>
-    <p>5x5 Grid | Row, Col, Diag only</p>
+    <h3 style="margin-top:0">🔢 Multiplayer Bingo</h3>
+    <p style="color:#888">5x5 Grid | Win to earn +50 Coins</p>
     <button class="play-btn" onclick="location.href='bingo.html'">PLAY BINGO</button>
 </div>
 
-<script>
-    // Profile Logic
-    let coins = localStorage.getItem('t4u_coins') || 0;
-    let name = localStorage.getItem('t4u_name') || "Player_" + Math.floor(Math.random()*999);
-    document.getElementById('u-coins').innerText = coins;
-    document.getElementById('u-name').innerText = name;
+<div class="game-card">
+    <h3 style="margin-top:0">♟️ Pro Chess</h3>
+    <p style="color:#888">Bot or Multiplayer | Win to earn +20 Coins</p>
+    <button class="play-btn" onclick="location.href='chess.html'">PLAY CHESS</button>
+</div>
 
-    // Admin Mode: yoursite.com/?admin=Tech4U2024
+<script>
+    function loadProfile() {
+        let coins = localStorage.getItem('t4u_coins') || 0;
+        let name = localStorage.getItem('t4u_name') || "Player_" + Math.floor(Math.random()*999);
+        document.getElementById('u-coins').innerText = coins;
+        document.getElementById('u-name').innerText = name;
+    }
+
+    function changeName() {
+        let n = prompt("Enter New Name:");
+        if(n) { localStorage.setItem('t4u_name', n); loadProfile(); }
+    }
+
     if (new URLSearchParams(window.location.search).get('admin') === 'Tech4U2024') {
         document.getElementById('ad-area').style.display = 'none';
     }
+    loadProfile();
 </script>
 </body>
 </html>
