@@ -1,49 +1,122 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Tech4U - Multiplayer Chess</title>
-    <!-- We use Playroom Kit for the multiplayer backend -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech4U | Multiplayer Chess</title>
+    <!-- Playroom for Multiplayer -->
     <script src="https://cdn.jsdelivr.net/npm/playroomkit"></script>
-    <!-- We use Chess.js for the game rules -->
+    <!-- Chess.js for Game Rules -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <style>
-        body { background: #0a0b10; color: white; text-align: center; }
-        #status { margin: 20px; font-size: 20px; color: #00d4ff; }
-        /* Simple Board View */
-        #board { display: grid; grid-template-columns: repeat(8, 50px); width: 400px; margin: 0 auto; border: 5px solid #333; }
-        .sq { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 30px; cursor: pointer; }
-        .white { background: #ebecd0; color: #000; }
-        .black { background: #779556; color: #000; }
+        body { background: #111; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
+        #status { margin: 10px; color: #00d4ff; font-weight: bold; }
+        
+        /* The Chess Board CSS */
+        .board { 
+            display: grid; grid-template-columns: repeat(8, 1fr); 
+            width: 90vw; max-width: 400px; height: 90vw; max-height: 400px; 
+            margin: 0 auto; border: 4px solid #333; 
+        }
+        .square { display: flex; align-items: center; justify-content: center; font-size: 30px; cursor: pointer; }
+        .white-sq { background: #dee3e6; color: #222; }
+        .black-sq { background: #8ca2ad; color: #222; }
+        .selected { background: #ffeb3b !important; }
+
+        .btn-home { margin-top: 20px; background: #333; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; }
     </style>
 </head>
 <body>
-    <h1>Tech4U Multiplayer Chess</h1>
-    <div id="status">Connecting to Tech4U Servers...</div>
-    <div id="board"></div>
+
+    <h2>Tech4U Chess</h2>
+    <div id="status">Starting Playroom...</div>
+    
+    <div class="board" id="board"></div>
+
+    <button class="btn-home" onclick="location.href='index.html'">Back to Hub</button>
 
     <script>
-        const { insertCoin, myPlayer, onPlayerJoin, getState, setState } = Playroom;
+        // Use window.Playroom to ensure it finds the library
+        const { insertCoin, myPlayer, onPlayerJoin, setState, getState } = window.Playroom;
 
-        async function start() {
-            // This line creates the Multiplayer Room!
-            await insertCoin();
+        let game = new Chess();
+        let selectedSquare = null;
 
-            document.getElementById('status').innerText = "Game Started! Invite a friend.";
-            renderBoard();
-        }
+        async function init() {
+            try {
+                // This starts the Multiplayer Lobby
+                await insertCoin({
+                    gameId: "tech4u_chess_v1",
+                    baseUrl: "https://tech4u938.github.io/Tech4U.AllGame/"
+                });
 
-        function renderBoard() {
-            const boardDiv = document.getElementById('board');
-            boardDiv.innerHTML = '';
-            for (let i = 0; i < 64; i++) {
-                const sq = document.createElement('div');
-                sq.className = `sq ${(Math.floor(i/8) + i%8) % 2 === 0 ? 'white' : 'black'}`;
-                sq.innerText = "♟"; // Placeholder for pieces
-                boardDiv.appendChild(sq);
+                document.getElementById('status').innerText = "Game Online: " + myPlayer().getProfile().name;
+                
+                // Redraw board whenever game state changes
+                setInterval(() => {
+                    const fen = getState("fen");
+                    if (fen && fen !== game.fen()) {
+                        game.load(fen);
+                        drawBoard();
+                    }
+                }, 500);
+
+                drawBoard();
+
+            } catch (err) {
+                document.getElementById('status').innerText = "Error: " + err.message;
+                console.error(err);
             }
         }
 
-        start();
+        function drawBoard() {
+            const boardDiv = document.getElementById('board');
+            boardDiv.innerHTML = '';
+            const board = game.board();
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const square = board[r][c];
+                    const sqDiv = document.createElement('div');
+                    const pos = String.fromCharCode(97 + c) + (8 - r);
+                    
+                    sqDiv.className = `square ${(r + c) % 2 === 0 ? 'white-sq' : 'black-sq'}`;
+                    if (selectedSquare === pos) sqDiv.classList.add('selected');
+                    
+                    // Unicode Chess Pieces
+                    if (square) {
+                        const pieces = {
+                            'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
+                            'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔'
+                        };
+                        sqDiv.innerText = pieces[square.type === square.type.toUpperCase() ? square.type.toUpperCase() : square.type.toLowerCase()];
+                        if(square.color === 'w') sqDiv.style.color = "white";
+                    }
+
+                    sqDiv.onclick = () => handleSquareClick(pos);
+                    boardDiv.appendChild(sqDiv);
+                }
+            }
+        }
+
+        function handleSquareClick(pos) {
+            if (selectedSquare === null) {
+                if (game.get(pos)) {
+                    selectedSquare = pos;
+                    drawBoard();
+                }
+            } else {
+                const move = game.move({ from: selectedSquare, to: pos, promotion: 'q' });
+                if (move) {
+                    setState("fen", game.fen()); // SEND MOVE TO OTHER PLAYER
+                }
+                selectedSquare = null;
+                drawBoard();
+            }
+        }
+
+        // Start the game
+        init();
     </script>
 </body>
 </html>
