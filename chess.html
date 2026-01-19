@@ -4,55 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tech4U | Multiplayer Chess</title>
-    <!-- Playroom for Multiplayer -->
     <script src="https://cdn.jsdelivr.net/npm/playroomkit"></script>
-    <!-- Chess.js for Game Rules -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <style>
-        body { background: #111; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
+        body { background: #0a0b10; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
         #status { margin: 10px; color: #00d4ff; font-weight: bold; }
-        
-        /* The Chess Board CSS */
         .board { 
             display: grid; grid-template-columns: repeat(8, 1fr); 
-            width: 90vw; max-width: 400px; height: 90vw; max-height: 400px; 
-            margin: 0 auto; border: 4px solid #333; 
+            width: 90vw; max-width: 360px; height: 90vw; max-height: 360px; 
+            margin: 0 auto; border: 5px solid #333; 
         }
         .square { display: flex; align-items: center; justify-content: center; font-size: 30px; cursor: pointer; }
         .white-sq { background: #dee3e6; color: #222; }
         .black-sq { background: #8ca2ad; color: #222; }
         .selected { background: #ffeb3b !important; }
-
-        .btn-home { margin-top: 20px; background: #333; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; }
+        .btn { margin-top: 20px; background: #00d4ff; color: black; border: none; padding: 12px 25px; font-weight: bold; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <h2>Tech4U Chess</h2>
-    <div id="status">Starting Playroom...</div>
-    
+    <h2>Tech4U Multiplayer Chess</h2>
+    <div id="status">Connecting to Tech4U Servers...</div>
     <div class="board" id="board"></div>
-
-    <button class="btn-home" onclick="location.href='index.html'">Back to Hub</button>
+    <button class="btn" onclick="location.href='index.html'">EXIT GAME</button>
 
     <script>
-        // Use window.Playroom to ensure it finds the library
-        const { insertCoin, myPlayer, onPlayerJoin, setState, getState } = window.Playroom;
-
+        const { insertCoin, myPlayer, onPlayerJoin, setState, getState } = Playroom;
         let game = new Chess();
         let selectedSquare = null;
 
         async function init() {
             try {
-                // This starts the Multiplayer Lobby
+                // YOUR REAL GAME ID ADDED HERE
                 await insertCoin({
-                    gameId: "tech4u_chess_v1",
+                    gameId: "lSO33kfiKxPFBkaFheob",
                     baseUrl: "https://tech4u938.github.io/Tech4U.AllGame/"
                 });
 
-                document.getElementById('status').innerText = "Game Online: " + myPlayer().getProfile().name;
+                document.getElementById('status').innerText = "Playing as: " + myPlayer().getProfile().name;
                 
-                // Redraw board whenever game state changes
+                // Sync the board every half second
                 setInterval(() => {
                     const fen = getState("fen");
                     if (fen && fen !== game.fen()) {
@@ -62,10 +53,9 @@
                 }, 500);
 
                 drawBoard();
-
             } catch (err) {
-                document.getElementById('status').innerText = "Error: " + err.message;
-                console.error(err);
+                document.getElementById('status').innerText = "Tap to Join Game";
+                window.onclick = () => init();
             }
         }
 
@@ -77,45 +67,33 @@
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
                     const square = board[r][c];
-                    const sqDiv = document.createElement('div');
                     const pos = String.fromCharCode(97 + c) + (8 - r);
-                    
+                    const sqDiv = document.createElement('div');
                     sqDiv.className = `square ${(r + c) % 2 === 0 ? 'white-sq' : 'black-sq'}`;
                     if (selectedSquare === pos) sqDiv.classList.add('selected');
                     
-                    // Unicode Chess Pieces
                     if (square) {
                         const pieces = {
                             'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
                             'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔'
                         };
-                        sqDiv.innerText = pieces[square.type === square.type.toUpperCase() ? square.type.toUpperCase() : square.type.toLowerCase()];
+                        sqDiv.innerText = pieces[square.type];
                         if(square.color === 'w') sqDiv.style.color = "white";
                     }
-
-                    sqDiv.onclick = () => handleSquareClick(pos);
+                    sqDiv.onclick = () => {
+                        if (selectedSquare === null) {
+                            if (game.get(pos)) { selectedSquare = pos; drawBoard(); }
+                        } else {
+                            const move = game.move({ from: selectedSquare, to: pos, promotion: 'q' });
+                            if (move) { setState("fen", game.fen()); }
+                            selectedSquare = null;
+                            drawBoard();
+                        }
+                    };
                     boardDiv.appendChild(sqDiv);
                 }
             }
         }
-
-        function handleSquareClick(pos) {
-            if (selectedSquare === null) {
-                if (game.get(pos)) {
-                    selectedSquare = pos;
-                    drawBoard();
-                }
-            } else {
-                const move = game.move({ from: selectedSquare, to: pos, promotion: 'q' });
-                if (move) {
-                    setState("fen", game.fen()); // SEND MOVE TO OTHER PLAYER
-                }
-                selectedSquare = null;
-                drawBoard();
-            }
-        }
-
-        // Start the game
         init();
     </script>
 </body>
