@@ -5,57 +5,51 @@
     <title>Tech4U | Multiplayer Ludo</title>
     <script src="https://cdn.jsdelivr.net/npm/playroomkit"></script>
     <style>
-        body { background: #0a0b10; color: white; text-align: center; font-family: sans-serif; }
-        .ludo-board { 
-            width: 350px; height: 350px; background: white; margin: 20px auto; 
-            display: grid; grid-template-columns: repeat(15, 1fr); border: 5px solid #333;
-        }
-        /* Simple Dice Button */
-        #dice-btn { 
-            padding: 20px 40px; font-size: 24px; cursor: pointer; 
-            background: #00d4ff; border: none; border-radius: 10px; font-weight: bold;
-        }
-        .player-info { margin: 20px; font-size: 18px; color: #00d4ff; }
+        body { background: #0a0b10; color: white; text-align: center; font-family: sans-serif; padding: 20px; }
+        #status { margin-bottom: 20px; color: #00d4ff; }
+        .dice-area { background: #161b22; padding: 30px; border-radius: 20px; border: 2px solid #333; display: inline-block; }
+        #dice-val { font-size: 60px; margin: 20px; display: block; }
+        .btn-roll { background: #00d4ff; color: black; border: none; padding: 15px 30px; font-size: 20px; font-weight: bold; border-radius: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <h1>Tech4U Ludo Online</h1>
-    <div id="status" class="player-info">Loading Multiplayer...</div>
-    
-    <div class="ludo-board" id="board">
-        <!-- The board squares would go here -->
-        <p style="color:black; grid-column: span 15; padding-top: 150px;">LUDO BOARD AREA</p>
+    <h1>Tech4U Ludo</h1>
+    <div id="status">Connecting...</div>
+
+    <div class="dice-area">
+        <span id="dice-val">🎲</span>
+        <button class="btn-roll" onclick="roll()">ROLL DICE</button>
     </div>
 
-    <button id="dice-btn" onclick="rollDice()">ROLL DICE 🎲</button>
-    <h2 id="result">Result: -</h2>
-
     <script>
-        const { insertCoin, myPlayer, onPlayerJoin, setState, getState } = Playroom;
+        const { insertCoin, myPlayer, setState, getState } = Playroom;
 
-        async function setup() {
-            // Start Multiplayer
-            await insertCoin();
-            document.getElementById('status').innerText = "Connected as: " + myPlayer().getProfile().name;
+        async function init() {
+            await insertCoin({
+                gameId: "lSO33kfiKxPFBkaFheob", // YOUR ID
+                baseUrl: "https://tech4u938.github.io/Tech4U.AllGame/"
+            });
+            document.getElementById('status').innerText = "Ready to play, " + myPlayer().getProfile().name;
 
-            // Listen for dice rolls from other players
+            // Update dice whenever someone rolls
             setInterval(() => {
-                const lastRoll = getState("diceValue");
-                if (lastRoll) {
-                    document.getElementById('result').innerText = "Last Roll: " + lastRoll;
+                const val = getState("dice");
+                const roller = getState("roller");
+                if (val) {
+                    document.getElementById('dice-val').innerText = val;
+                    document.getElementById('status').innerText = roller + " rolled a " + val;
                 }
             }, 500);
         }
 
-        function rollDice() {
-            const roll = Math.floor(Math.random() * 6) + 1;
-            // SYNC the roll with all players
-            setState("diceValue", roll);
-            document.getElementById('result').innerText = "You rolled: " + roll;
+        function roll() {
+            const r = Math.floor(Math.random() * 6) + 1;
+            setState("dice", r);
+            setState("roller", myPlayer().getProfile().name);
         }
 
-        setup();
+        init();
     </script>
 </body>
 </html>
