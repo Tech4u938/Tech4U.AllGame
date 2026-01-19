@@ -8,134 +8,109 @@
     <style>
         :root { --blue: #00d4ff; --bg: #0a0b10; }
         body { background: var(--bg); color: white; font-family: sans-serif; text-align: center; margin: 0; }
-        
-        /* B-I-N-G-O Letters */
-        #bingo-status { font-size: 40px; font-weight: 900; letter-spacing: 15px; margin: 20px 0; color: #333; }
-        .active-letter { color: var(--blue) !important; text-shadow: 0 0 10px var(--blue); }
-
-        /* 5x5 Grid */
-        #grid { 
-            display: grid; grid-template-columns: repeat(5, 1fr); 
-            width: 95vw; max-width: 400px; height: 95vw; max-height: 400px; 
-            margin: 0 auto; gap: 5px; background: #333; padding: 5px; border-radius: 10px;
-        }
-        .cell { 
-            background: #161b22; display: flex; align-items: center; justify-content: center; 
-            font-size: 24px; font-weight: bold; cursor: pointer; border-radius: 5px;
-        }
+        #bingo-word { font-size: 45px; font-weight: 900; letter-spacing: 10px; margin: 15px; color: #222; }
+        .letter-on { color: var(--blue); text-shadow: 0 0 10px var(--blue); }
+        #grid { display: grid; grid-template-columns: repeat(5, 1fr); width: 95vw; max-width: 400px; height: 95vw; max-height: 400px; margin: 0 auto; gap: 5px; }
+        .cell { background: #161b22; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: bold; cursor: pointer; border-radius: 8px; }
         .marked { background: var(--blue) !important; color: black; }
-        
-        .setup-msg { color: var(--blue); padding: 20px; }
-        .btn { background: var(--blue); color: black; border: none; padding: 15px 30px; border-radius: 10px; font-weight: bold; margin-top: 20px; cursor: pointer; }
+        .setup-input { background: none; border: 1px solid var(--blue); color: white; width: 40px; text-align: center; font-size: 20px; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <div id="setup-screen">
-        <h1 style="color:var(--blue)">Setup Your Board</h1>
-        <p>Click cells to fill numbers 1 to 25</p>
-        <div id="setup-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); width: 90vw; max-width: 350px; margin: 0 auto; gap: 5px;"></div>
-        <button id="start-btn" class="btn hidden" onclick="startPlay()">I'M READY TO PLAY</button>
+    <!-- Setup Phase -->
+    <div id="setup">
+        <h2 style="color:var(--blue)">Fill Your Board (1-25)</h2>
+        <div id="setup-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; width: 300px; margin: 0 auto;"></div>
+        <button id="ready-btn" onclick="startPlay()" style="margin-top:20px; padding:15px; background:var(--blue); border:none; border-radius:10px; font-weight:bold; display:none;">START BINGO</button>
     </div>
 
-    <div id="play-screen" class="hidden">
-        <div id="bingo-status">
-            <span id="b">B</span><span id="i">I</span><span id="n">N</span><span id="g">G</span><span id="o">O</span>
+    <!-- Play Phase -->
+    <div id="play" class="hidden">
+        <div id="bingo-word">
+            <span id="L0">B</span><span id="L1">I</span><span id="L2">N</span><span id="L3">G</span><span id="L4">O</span>
         </div>
-        <div id="turn-display" style="color:var(--blue); margin-bottom: 10px;">Waiting for players...</div>
         <div id="grid"></div>
-        <button class="btn" onclick="location.href='index.html'" style="background:#222; color:white;">EXIT</button>
+        <p id="msg" style="color:var(--blue)"></p>
+        <button onclick="location.href='index.html'" style="color:#555; background:none; border:none; margin-top:20px;">Exit</button>
     </div>
 
 <script>
-    const { insertCoin, myPlayer, onPlayerJoin, setState, getState } = Playroom;
+    const { insertCoin, setState, getState } = Playroom;
     let myBoard = Array(25).fill(null);
-    let markedIndices = [];
-    let nextNum = 1;
+    let marked = [];
+    let setupIndex = 0;
 
-    // --- SETUP PHASE ---
-    const setupGrid = document.getElementById('setup-grid');
-    for (let i = 0; i < 25; i++) {
-        const cell = document.createElement('div');
-        cell.style = "height:60px; background:#161b22; border:1px solid #333; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:bold; cursor:pointer;";
-        cell.onclick = () => {
-            if (myBoard[i] === null) {
-                myBoard[i] = nextNum;
-                cell.innerText = nextNum;
-                cell.style.color = "#00d4ff";
-                nextNum++;
-                if (nextNum > 25) document.getElementById('start-btn').classList.remove('hidden');
+    // Build Setup Grid
+    const sg = document.getElementById('setup-grid');
+    for(let i=0; i<25; i++) {
+        const d = document.createElement('div');
+        d.style = "height:50px; background:#161b22; border:1px solid #333; display:flex; align-items:center; justify-content:center;";
+        d.onclick = () => {
+            if(myBoard[i] === null) {
+                let n = prompt("Enter number for this cell (1-25):");
+                if(n > 0 && n <= 25 && !myBoard.includes(parseInt(n))) {
+                    myBoard[i] = parseInt(n);
+                    d.innerText = n;
+                    setupIndex++;
+                    if(setupIndex === 25) document.getElementById('ready-btn').style.display = 'block';
+                }
             }
         };
-        setupGrid.appendChild(cell);
+        sg.appendChild(d);
     }
 
     async function startPlay() {
-        document.getElementById('setup-screen').classList.add('hidden');
-        document.getElementById('play-screen').classList.remove('hidden');
-        
+        document.getElementById('setup').classList.add('hidden');
+        document.getElementById('play').classList.remove('hidden');
         await insertCoin({ gameId: "lSO33kfiKxPFBkaFheob" });
-        renderBoard();
-
-        // Listen for number calls
-        setInterval(() => {
-            const lastCalled = getState("lastCalled");
-            if (lastCalled) markNumber(lastCalled);
-            checkWin();
-        }, 1000);
+        render();
+        setInterval(sync, 1000);
     }
 
-    function renderBoard() {
-        const grid = document.getElementById('grid');
-        grid.innerHTML = '';
-        myBoard.forEach((num, index) => {
-            const cell = document.createElement('div');
-            cell.className = "cell" + (markedIndices.includes(index) ? " marked" : "");
-            cell.innerText = num;
-            cell.onclick = () => callNumber(num);
-            grid.appendChild(cell);
+    function render() {
+        const g = document.getElementById('grid'); g.innerHTML = '';
+        myBoard.forEach((num, i) => {
+            const c = document.createElement('div');
+            c.className = "cell" + (marked.includes(i) ? " marked" : "");
+            c.innerText = num;
+            c.onclick = () => setState("called", num);
+            g.appendChild(c);
         });
     }
 
-    function callNumber(num) {
-        setState("lastCalled", num);
-    }
-
-    function markNumber(num) {
-        const index = myBoard.indexOf(num);
-        if (index !== -1 && !markedIndices.includes(index)) {
-            markedIndices.push(index);
-            renderBoard();
+    function sync() {
+        const last = getState("called");
+        if (last) {
+            let idx = myBoard.indexOf(last);
+            if (idx !== -1 && !marked.includes(idx)) {
+                marked.push(idx);
+                render();
+                checkBingo();
+            }
         }
     }
 
-    function checkWin() {
+    function checkBingo() {
         let lines = 0;
-        const m = markedIndices;
-
+        const m = marked;
         // Rows
-        for (let r = 0; r < 5; r++) {
-            let row = [r*5, r*5+1, r*5+2, r*5+3, r*5+4];
-            if (row.every(i => m.includes(i))) lines++;
-        }
-        // Columns
-        for (let c = 0; c < 5; c++) {
-            let col = [c, c+5, c+10, c+15, c+20];
-            if (col.every(i => m.includes(i))) lines++;
-        }
+        for(let r=0; r<5; r++) if([0,1,2,3,4].every(i => m.includes(i + r*5))) lines++;
+        // Cols
+        for(let c=0; c<5; c++) if([0,5,10,15,20].every(i => m.includes(i + c))) lines++;
         // Diagonals
-        if ([0, 6, 12, 18, 24].every(i => m.includes(i))) lines++;
-        if ([4, 8, 12, 16, 20].every(i => m.includes(i))) lines++;
+        if([0,6,12,18,24].every(i => m.includes(i))) lines++;
+        if([4,8,12,16,20].every(i => m.includes(i))) lines++;
 
-        // Update Letters
-        if (lines >= 1) document.getElementById('b').classList.add('active-letter');
-        if (lines >= 2) document.getElementById('i').classList.add('active-letter');
-        if (lines >= 3) document.getElementById('n').classList.add('active-letter');
-        if (lines >= 4) document.getElementById('g').classList.add('active-letter');
-        if (lines >= 5) {
-            document.getElementById('o').classList.add('active-letter');
-            document.getElementById('turn-display').innerText = "🎉 BINGO! YOU WIN! 🎉";
+        for(let i=0; i<5; i++) {
+            if(lines > i) document.getElementById('L'+i).classList.add('letter-on');
+        }
+
+        if(lines >= 5) {
+            document.getElementById('msg').innerText = "🏆 YOU WIN! +50 COINS";
+            let c = parseInt(localStorage.getItem('t4u_coins') || 0);
+            localStorage.setItem('t4u_coins', c + 50);
         }
     }
 </script>
