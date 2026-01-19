@@ -2,54 +2,123 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Tech4U | Multiplayer Ludo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tech4U Chess Multiplayer</title>
+    <!-- Multiplayer Logic -->
     <script src="https://cdn.jsdelivr.net/npm/playroomkit"></script>
+    <!-- Chess Logic -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <style>
-        body { background: #0a0b10; color: white; text-align: center; font-family: sans-serif; padding: 20px; }
-        #status { margin-bottom: 20px; color: #00d4ff; }
-        .dice-area { background: #161b22; padding: 30px; border-radius: 20px; border: 2px solid #333; display: inline-block; }
-        #dice-val { font-size: 60px; margin: 20px; display: block; }
-        .btn-roll { background: #00d4ff; color: black; border: none; padding: 15px 30px; font-size: 20px; font-weight: bold; border-radius: 10px; cursor: pointer; }
+        body { background: #0a0b10; color: white; font-family: sans-serif; text-align: center; margin: 0; overflow-x: hidden; }
+        #debug-log { font-size: 10px; color: #555; margin-top: 5px; }
+        .board { 
+            display: grid; grid-template-columns: repeat(8, 1fr); 
+            width: 95vw; max-width: 380px; height: 95vw; max-height: 380px; 
+            margin: 10px auto; border: 4px solid #333; background: #222;
+        }
+        .square { display: flex; align-items: center; justify-content: center; font-size: 30px; }
+        .white-sq { background: #dee3e6; color: #222; }
+        .black-sq { background: #8ca2ad; color: #222; }
+        .selected { background: #ffeb3b !important; }
+        #start-screen { padding-top: 50px; }
+        .btn-play { 
+            background: #00d4ff; color: black; border: none; padding: 20px 50px; 
+            font-size: 22px; font-weight: bold; border-radius: 50px; cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+        }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <h1>Tech4U Ludo</h1>
-    <div id="status">Connecting...</div>
+    <div id="start-screen">
+        <h1>Tech4U Chess</h1>
+        <button class="btn-play" onclick="initGame()">PLAY MULTIPLAYER</button>
+        <p id="debug-log">Status: Waiting for user...</p>
+    </div>
 
-    <div class="dice-area">
-        <span id="dice-val">🎲</span>
-        <button class="btn-roll" onclick="roll()">ROLL DICE</button>
+    <div id="game-screen" class="hidden">
+        <div id="status">Connecting...</div>
+        <div class="board" id="board"></div>
+        <button onclick="location.href='index.html'" style="padding:10px; background:#333; color:white; border:none; border-radius:5px;">Exit Game</button>
     </div>
 
     <script>
         const { insertCoin, myPlayer, setState, getState } = Playroom;
+        let game = new Chess();
+        let selectedSquare = null;
 
-        async function init() {
-            await insertCoin({
-                gameId: "lSO33kfiKxPFBkaFheob", // YOUR ID
-                baseUrl: "https://tech4u938.github.io/Tech4U.AllGame/"
-            });
-            document.getElementById('status').innerText = "Ready to play, " + myPlayer().getProfile().name;
+        async function initGame() {
+            const log = document.getElementById('debug-log');
+            log.innerText = "Status: Initializing Playroom...";
+            
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
 
-            // Update dice whenever someone rolls
-            setInterval(() => {
-                const val = getState("dice");
-                const roller = getState("roller");
-                if (val) {
-                    document.getElementById('dice-val').innerText = val;
-                    document.getElementById('status').innerText = roller + " rolled a " + val;
+            try {
+                // USING YOUR ACTUAL ID
+                await insertCoin({
+                    gameId: "lSO33kfiKxPFBkaFheob",
+                    baseUrl: window.location.href // Tells Playroom exactly where we are
+                });
+
+                log.innerText = "Status: Connected!";
+                document.getElementById('status').innerText = "Playing as: " + myPlayer().getProfile().name;
+
+                // Watch for opponent moves
+                setInterval(() => {
+                    const fen = getState("fen");
+                    if (fen && fen !== game.fen()) {
+                        game.load(fen);
+                        drawBoard();
+                    }
+                }, 1000);
+
+                drawBoard();
+
+            } catch (e) {
+                log.innerText = "Error: " + e.message;
+                alert("Multiplayer Error. Please refresh.");
+            }
+        }
+
+        function drawBoard() {
+            const boardDiv = document.getElementById('board');
+            boardDiv.innerHTML = '';
+            const board = game.board();
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const square = board[r][c];
+                    const pos = String.fromCharCode(97 + c) + (8 - r);
+                    const sqDiv = document.createElement('div');
+                    sqDiv.className = `square ${(r + c) % 2 === 0 ? 'white-sq' : 'black-sq'}`;
+                    if (selectedSquare === pos) sqDiv.classList.add('selected');
+                    
+                    if (square) {
+                        const pieces = {
+                            'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
+                            'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔'
+                        };
+                        sqDiv.innerText = pieces[square.type];
+                        if(square.color === 'w') sqDiv.style.color = "#fff";
+                        else sqDiv.style.color = "#000";
+                    }
+
+                    sqDiv.onclick = () => {
+                        if (selectedSquare === null) {
+                            if (game.get(pos)) { selectedSquare = pos; drawBoard(); }
+                        } else {
+                            const move = game.move({ from: selectedSquare, to: pos, promotion: 'q' });
+                            if (move) { setState("fen", game.fen()); }
+                            selectedSquare = null;
+                            drawBoard();
+                        }
+                    };
+                    boardDiv.appendChild(sqDiv);
                 }
-            }, 500);
+            }
         }
-
-        function roll() {
-            const r = Math.floor(Math.random() * 6) + 1;
-            setState("dice", r);
-            setState("roller", myPlayer().getProfile().name);
-        }
-
-        init();
     </script>
 </body>
 </html>
