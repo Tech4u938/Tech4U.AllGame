@@ -3,69 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tech4U Chess Multiplayer</title>
-    <!-- Multiplayer Logic -->
+    <title>Tech4U Chess | Bot & Multiplayer</title>
     <script src="https://cdn.jsdelivr.net/npm/playroomkit"></script>
-    <!-- Chess Logic -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <style>
-        body { background: #0a0b10; color: white; font-family: sans-serif; text-align: center; margin: 0; overflow-x: hidden; }
-        #debug-log { font-size: 10px; color: #555; margin-top: 5px; }
+        body { background: #0a0b10; color: white; font-family: sans-serif; text-align: center; margin: 0; }
         .board { 
             display: grid; grid-template-columns: repeat(8, 1fr); 
             width: 95vw; max-width: 380px; height: 95vw; max-height: 380px; 
             margin: 10px auto; border: 4px solid #333; background: #222;
         }
-        .square { display: flex; align-items: center; justify-content: center; font-size: 30px; }
+        .square { display: flex; align-items: center; justify-content: center; font-size: 30px; cursor: pointer; }
         .white-sq { background: #dee3e6; color: #222; }
         .black-sq { background: #8ca2ad; color: #222; }
         .selected { background: #ffeb3b !important; }
-        #start-screen { padding-top: 50px; }
-        .btn-play { 
-            background: #00d4ff; color: black; border: none; padding: 20px 50px; 
-            font-size: 22px; font-weight: bold; border-radius: 50px; cursor: pointer;
-            box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+        #menu { padding-top: 60px; }
+        .btn { 
+            background: #00d4ff; color: black; border: none; padding: 15px 30px; 
+            font-size: 18px; font-weight: bold; border-radius: 10px; cursor: pointer; margin: 10px;
+            width: 250px;
         }
+        .btn-bot { background: #a855f7; color: white; }
         .hidden { display: none !important; }
+        #status { color: #00d4ff; margin: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="start-screen">
+    <div id="menu">
         <h1>Tech4U Chess</h1>
-        <button class="btn-play" onclick="initGame()">PLAY MULTIPLAYER</button>
-        <p id="debug-log">Status: Waiting for user...</p>
+        <button class="btn" onclick="startMultiplayer()">🌐 PLAY ONLINE</button>
+        <br>
+        <button class="btn btn-bot" onclick="startBotGame()">🤖 PLAY VS BOT</button>
     </div>
 
-    <div id="game-screen" class="hidden">
-        <div id="status">Connecting...</div>
+    <div id="game-area" class="hidden">
+        <div id="status">Your Turn (White)</div>
         <div class="board" id="board"></div>
-        <button onclick="location.href='index.html'" style="padding:10px; background:#333; color:white; border:none; border-radius:5px;">Exit Game</button>
+        <button onclick="location.reload()" style="padding:10px; background:#333; color:white; border:none; border-radius:5px;">Back to Menu</button>
     </div>
 
     <script>
         const { insertCoin, myPlayer, setState, getState } = Playroom;
         let game = new Chess();
         let selectedSquare = null;
+        let isBotMode = false;
 
-        async function initGame() {
-            const log = document.getElementById('debug-log');
-            log.innerText = "Status: Initializing Playroom...";
-            
-            document.getElementById('start-screen').classList.add('hidden');
-            document.getElementById('game-screen').classList.remove('hidden');
+        // --- BOT LOGIC ---
+        function makeBotMove() {
+            const moves = game.moves();
+            if (game.game_over() || moves.length === 0) return;
 
+            // Simple Bot: Takes a piece if it can, otherwise moves randomly
+            const move = moves[Math.floor(Math.random() * moves.length)];
+            game.move(move);
+            drawBoard();
+            document.getElementById('status').innerText = "Your Turn";
+        }
+
+        // --- GAME MODES ---
+        async function startMultiplayer() {
+            isBotMode = false;
+            showGame();
             try {
-                // USING YOUR ACTUAL ID
-                await insertCoin({
-                    gameId: "lSO33kfiKxPFBkaFheob",
-                    baseUrl: window.location.href // Tells Playroom exactly where we are
-                });
-
-                log.innerText = "Status: Connected!";
-                document.getElementById('status').innerText = "Playing as: " + myPlayer().getProfile().name;
-
-                // Watch for opponent moves
+                await insertCoin({ gameId: "lSO33kfiKxPFBkaFheob" }); // Simplified
+                document.getElementById('status').innerText = "Online: " + myPlayer().getProfile().name;
                 setInterval(() => {
                     const fen = getState("fen");
                     if (fen && fen !== game.fen()) {
@@ -73,15 +75,25 @@
                         drawBoard();
                     }
                 }, 1000);
-
-                drawBoard();
-
             } catch (e) {
-                log.innerText = "Error: " + e.message;
-                alert("Multiplayer Error. Please refresh.");
+                alert("Online Error. Playing offline mode.");
+                startBotGame();
             }
         }
 
+        function startBotGame() {
+            isBotMode = true;
+            showGame();
+            document.getElementById('status').innerText = "Playing vs Tech4U Bot";
+            drawBoard();
+        }
+
+        function showGame() {
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('game-area').classList.remove('hidden');
+        }
+
+        // --- BOARD DRAWING & CLICKING ---
         function drawBoard() {
             const boardDiv = document.getElementById('board');
             boardDiv.innerHTML = '';
@@ -101,21 +113,36 @@
                             'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔'
                         };
                         sqDiv.innerText = pieces[square.type];
-                        if(square.color === 'w') sqDiv.style.color = "#fff";
-                        else sqDiv.style.color = "#000";
+                        sqDiv.style.color = (square.color === 'w') ? "#fff" : "#000";
                     }
 
-                    sqDiv.onclick = () => {
-                        if (selectedSquare === null) {
-                            if (game.get(pos)) { selectedSquare = pos; drawBoard(); }
-                        } else {
-                            const move = game.move({ from: selectedSquare, to: pos, promotion: 'q' });
-                            if (move) { setState("fen", game.fen()); }
-                            selectedSquare = null;
-                            drawBoard();
-                        }
-                    };
+                    sqDiv.onclick = () => handleMove(pos);
                     boardDiv.appendChild(sqDiv);
+                }
+            }
+        }
+
+        function handleMove(pos) {
+            if (selectedSquare === null) {
+                if (game.get(pos) && game.get(pos).color === game.turn()) {
+                    selectedSquare = pos;
+                    drawBoard();
+                }
+            } else {
+                const move = game.move({ from: selectedSquare, to: pos, promotion: 'q' });
+                if (move) {
+                    if (!isBotMode) setState("fen", game.fen());
+                    
+                    selectedSquare = null;
+                    drawBoard();
+
+                    if (isBotMode && !game.game_over()) {
+                        document.getElementById('status').innerText = "Bot is thinking...";
+                        setTimeout(makeBotMove, 800);
+                    }
+                } else {
+                    selectedSquare = null;
+                    drawBoard();
                 }
             }
         }
