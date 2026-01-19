@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tech4U | Multiplayer Ludo</title>
+    <script src="https://cdn.jsdelivr.net/npm/playroomkit"></script>
+    <style>
+        body { background: #0a0b10; color: white; text-align: center; font-family: sans-serif; }
+        .ludo-board { 
+            width: 350px; height: 350px; background: white; margin: 20px auto; 
+            display: grid; grid-template-columns: repeat(15, 1fr); border: 5px solid #333;
+        }
+        /* Simple Dice Button */
+        #dice-btn { 
+            padding: 20px 40px; font-size: 24px; cursor: pointer; 
+            background: #00d4ff; border: none; border-radius: 10px; font-weight: bold;
+        }
+        .player-info { margin: 20px; font-size: 18px; color: #00d4ff; }
+    </style>
+</head>
+<body>
+
+    <h1>Tech4U Ludo Online</h1>
+    <div id="status" class="player-info">Loading Multiplayer...</div>
+    
+    <div class="ludo-board" id="board">
+        <!-- The board squares would go here -->
+        <p style="color:black; grid-column: span 15; padding-top: 150px;">LUDO BOARD AREA</p>
+    </div>
+
+    <button id="dice-btn" onclick="rollDice()">ROLL DICE 🎲</button>
+    <h2 id="result">Result: -</h2>
+
+    <script>
+        const { insertCoin, myPlayer, onPlayerJoin, setState, getState } = Playroom;
+
+        async function setup() {
+            // Start Multiplayer
+            await insertCoin();
+            document.getElementById('status').innerText = "Connected as: " + myPlayer().getProfile().name;
+
+            // Listen for dice rolls from other players
+            setInterval(() => {
+                const lastRoll = getState("diceValue");
+                if (lastRoll) {
+                    document.getElementById('result').innerText = "Last Roll: " + lastRoll;
+                }
+            }, 500);
+        }
+
+        function rollDice() {
+            const roll = Math.floor(Math.random() * 6) + 1;
+            // SYNC the roll with all players
+            setState("diceValue", roll);
+            document.getElementById('result').innerText = "You rolled: " + roll;
+        }
+
+        setup();
+    </script>
+</body>
+</html>
