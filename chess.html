@@ -3,150 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tech4U Chess | Bot & Online</title>
-    <!-- We need these two libraries for the game to work -->
-    <script src="https://cdn.jsdelivr.net/npm/playroomkit"></script>
+    <title>Tech4U Chess</title>
+    <!-- Use standard scripts -->
+    <script src="https://unpkg.com/playroomkit/multiplayer.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <style>
-        body { background: #0a0b10; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 0; }
-        .board { 
+        body { background: #000; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 0; }
+        #board { 
             display: grid; grid-template-columns: repeat(8, 1fr); 
-            width: 95vw; max-width: 380px; height: 95vw; max-height: 380px; 
-            margin: 10px auto; border: 4px solid #333; background: #222;
+            width: 95vw; height: 95vw; max-width: 400px; max-height: 400px; 
+            margin: 10px auto; border: 2px solid #555; 
         }
-        .square { display: flex; align-items: center; justify-content: center; font-size: 30px; cursor: pointer; }
-        .white-sq { background: #dee3e6; color: #222; }
-        .black-sq { background: #8ca2ad; color: #222; }
-        .selected { background: #ffeb3b !important; border: 2px solid orange inset; }
-        #ui-layer { padding-top: 40px; }
-        .btn { 
-            background: #00d4ff; color: black; border: none; padding: 15px; 
-            font-size: 18px; font-weight: bold; border-radius: 10px; cursor: pointer; margin: 10px; width: 80%; max-width: 300px;
-        }
-        .btn-bot { background: #a855f7; color: white; }
-        .hidden { display: none !important; }
-        #status { color: #00d4ff; margin: 10px; font-weight: bold; height: 20px; }
+        .sq { display: flex; align-items: center; justify-content: center; font-size: 30px; cursor: pointer; }
+        .w-sq { background: #eee; color: #222; }
+        .b-sq { background: #444; color: #222; }
+        .sel { background: yellow !important; }
+        .btn { padding: 15px; margin: 5px; width: 80%; font-size: 18px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
+        .online { background: #00d4ff; }
+        .bot { background: #a855f7; color: white; }
+        #status { color: #00d4ff; height: 25px; font-weight: bold; margin-top: 10px; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <div id="ui-layer">
-        <h1>Tech4U Chess</h1>
-        <p>Choose Game Mode:</p>
-        <button class="btn" onclick="startOnline()">🌐 PLAY ONLINE</button>
-        <button class="btn btn-bot" onclick="startBot()">🤖 PLAY VS BOT</button>
+    <div id="menu">
+        <h1 style="color:#00d4ff">Tech4U Chess</h1>
+        <button class="btn online" onclick="startMulti()">PLAY ONLINE</button><br>
+        <button class="btn bot" onclick="startBot()">PLAY VS BOT</button>
+        <p style="font-size: 12px; color: #555;">ID: lSO33kfiKxPFBkaFheob</p>
     </div>
 
-    <div id="game-layer" class="hidden">
-        <div id="status">Your Turn (White)</div>
-        <div class="board" id="board"></div>
-        <button onclick="location.reload()" style="background:none; color:#555; border:1px solid #333; padding:5px; margin-top:20px;">Main Menu</button>
+    <div id="game" class="hidden">
+        <div id="status">Loading...</div>
+        <div id="board"></div>
+        <button onclick="location.reload()" style="background:#222; color:white; border:none; padding:10px; margin-top:10px;">Exit to Menu</button>
     </div>
 
     <script>
-        const { insertCoin, myPlayer, setState, getState } = Playroom;
-        let game = new Chess();
-        let isBotMode = false;
-        let selectedSquare = null;
+        const game = new Chess();
+        let selectedSq = null;
+        let botMode = false;
 
-        // --- 1. START MODES ---
-        async function startOnline() {
-            document.getElementById('ui-layer').classList.add('hidden');
-            document.getElementById('game-layer').classList.remove('hidden');
-            document.getElementById('status').innerText = "Connecting...";
+        function draw() {
+            const b = document.getElementById('board');
+            b.innerHTML = '';
+            const position = game.board();
 
-            try {
-                // FIXED: Removed complex settings that cause GitHub errors
-                await insertCoin({ gameId: "lSO33kfiKxPFBkaFheob" });
-                
-                document.getElementById('status').innerText = "Online: " + myPlayer().getProfile().name;
-                
-                // Keep board in sync with other player
-                setInterval(() => {
-                    const fen = getState("fen");
-                    if (fen && fen !== game.fen()) {
-                        game.load(fen);
-                        drawBoard();
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const s = position[r][c];
+                    const p = String.fromCharCode(97 + c) + (8 - r);
+                    const div = document.createElement('div');
+                    div.className = `sq ${(r + c) % 2 === 0 ? 'w-sq' : 'b-sq'}`;
+                    if (selectedSq === p) div.classList.add('sel');
+
+                    if (s) {
+                        const icon = {'p':'♟','r':'♜','n':'♞','b':'♝','q':'♛','k':'♚','P':'♙','R':'♖','N':'♘','B':'♗','Q':'♕','K':'♔'};
+                        div.innerText = icon[s.type === s.type.toUpperCase() ? s.type : s.type];
+                        div.style.color = (s.color === 'w') ? "blue" : "red";
                     }
-                }, 1000);
+                    div.onclick = () => move(p);
+                    b.appendChild(div);
+                }
+            }
+        }
 
-            } catch (e) {
-                console.log(e);
-                alert("Multiplayer Error. Switching to Bot Mode.");
-                startBot();
+        function move(p) {
+            if (selectedSq === null) {
+                if (game.get(p) && game.get(p).color === game.turn()) {
+                    selectedSq = p;
+                }
+            } else {
+                const result = game.move({ from: selectedSq, to: p, promotion: 'q' });
+                if (result) {
+                    if (!botMode) Playroom.setState("fen", game.fen());
+                    if (botMode) setTimeout(doBot, 500);
+                }
+                selectedSq = null;
+            }
+            draw();
+        }
+
+        function doBot() {
+            const moves = game.moves();
+            if (moves.length > 0) {
+                game.move(moves[Math.floor(Math.random() * moves.length)]);
+                draw();
             }
         }
 
         function startBot() {
-            isBotMode = true;
-            document.getElementById('ui-layer').classList.add('hidden');
-            document.getElementById('game-layer').classList.remove('hidden');
-            document.getElementById('status').innerText = "Vs Tech4U Bot";
-            drawBoard();
+            botMode = true;
+            document.getElementById('menu').className = 'hidden';
+            document.getElementById('game').className = '';
+            document.getElementById('status').innerText = "Mode: VS BOT";
+            draw();
         }
 
-        // --- 2. BOT LOGIC ---
-        function botMove() {
-            const moves = game.moves();
-            if (game.game_over()) return;
-            
-            // Random move bot
-            const move = moves[Math.floor(Math.random() * moves.length)];
-            game.move(move);
-            drawBoard();
-            document.getElementById('status').innerText = "Your Turn";
-        }
+        async function startMulti() {
+            botMode = false;
+            document.getElementById('menu').className = 'hidden';
+            document.getElementById('game').className = '';
+            document.getElementById('status').innerText = "Connecting...";
 
-        // --- 3. BOARD LOGIC ---
-        function drawBoard() {
-            const boardDiv = document.getElementById('board');
-            boardDiv.innerHTML = '';
-            const board = game.board();
-
-            for (let r = 0; r < 8; r++) {
-                for (let c = 0; c < 8; c++) {
-                    const square = board[r][c];
-                    const pos = String.fromCharCode(97 + c) + (8 - r);
-                    const sqDiv = document.createElement('div');
-                    sqDiv.className = `square ${(r + c) % 2 === 0 ? 'white-sq' : 'black-sq'}`;
-                    
-                    if (selectedSquare === pos) sqDiv.classList.add('selected');
-                    
-                    if (square) {
-                        const pieces = {
-                            'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
-                            'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔'
-                        };
-                        sqDiv.innerText = pieces[square.type];
-                        sqDiv.style.color = (square.color === 'w') ? "#fff" : "#000";
+            try {
+                // Simplified connection
+                await Playroom.insertCoin({ gameId: "lSO33kfiKxPFBkaFheob" });
+                document.getElementById('status').innerText = "Online Mode";
+                
+                setInterval(() => {
+                    const fen = Playroom.getState("fen");
+                    if (fen && fen !== game.fen()) {
+                        game.load(fen);
+                        draw();
                     }
-
-                    sqDiv.onclick = () => {
-                        if (selectedSquare === null) {
-                            if (game.get(pos) && game.get(pos).color === game.turn()) {
-                                selectedSquare = pos;
-                                drawBoard();
-                            }
-                        } else {
-                            const move = game.move({ from: selectedSquare, to: pos, promotion: 'q' });
-                            if (move) {
-                                if (!isBotMode) setState("fen", game.fen()); // Sync to online player
-                                selectedSquare = null;
-                                drawBoard();
-                                
-                                if (isBotMode && !game.game_over()) {
-                                    document.getElementById('status').innerText = "Bot is thinking...";
-                                    setTimeout(botMove, 600);
-                                }
-                            } else {
-                                selectedSquare = null;
-                                drawBoard();
-                            }
-                        }
-                    };
-                    boardDiv.appendChild(sqDiv);
-                }
+                }, 1000);
+            } catch (e) {
+                document.getElementById('status').innerText = "Error. Using Bot Mode.";
+                botMode = true;
             }
+            draw();
         }
     </script>
 </body>
