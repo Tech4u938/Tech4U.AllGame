@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tech4U Tic Tac Toe</title>
+    <script src="https://cdn.jsdelivr.net/npm/playroomkit"></script>
+    <style>
+        :root { --blue: #00d4ff; --bg: #0a0b10; }
+        body { background: var(--bg); color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 0; overflow: hidden; }
+        
+        /* Stats Bar */
+        .stats { background: #161b22; padding: 15px; display: flex; justify-content: space-around; border-bottom: 1px solid #333; }
+        .coin-val { color: var(--blue); font-weight: bold; }
+
+        /* The 3x3 Grid */
+        #grid { 
+            display: grid; grid-template-columns: repeat(3, 1fr); 
+            gap: 10px; width: 90vw; max-width: 350px; height: 90vw; max-height: 350px; 
+            margin: 40px auto; 
+        }
+        .cell { 
+            background: #161b22; border: 2px solid #333; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 60px; font-weight: bold; cursor: pointer; 
+        }
+        .cell.x { color: var(--blue); }
+        .cell.o { color: #ff4a4a; }
+
+        #status { font-size: 20px; color: var(--blue); margin-top: 20px; font-weight: bold; }
+        .btn { background: var(--blue); color: black; border: none; padding: 15px 30px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="stats">
+        <span>👤 <span id="p-name">Player</span></span>
+        <span>🪙 <span id="p-coins" class="coin-val">0</span></span>
+    </div>
+
+    <div id="menu">
+        <h1 style="color:var(--blue); margin-top:50px;">Tic Tac Toe</h1>
+        <button class="btn" onclick="start(false)">🌐 PLAY ONLINE</button><br>
+        <button class="btn" style="background:#a855f7; color:white;" onclick="start(true)">🤖 VS BOT</button>
+    </div>
+
+    <div id="game" class="hidden">
+        <div id="status">Your Turn</div>
+        <div id="grid">
+            <div class="cell" onclick="tap(0)"></div>
+            <div class="cell" onclick="tap(1)"></div>
+            <div class="cell" onclick="tap(2)"></div>
+            <div class="cell" onclick="tap(3)"></div>
+            <div class="cell" onclick="tap(4)"></div>
+            <div class="cell" onclick="tap(5)"></div>
+            <div class="cell" onclick="tap(6)"></div>
+            <div class="cell" onclick="tap(7)"></div>
+            <div class="cell" onclick="tap(8)"></div>
+        </div>
+        <button onclick="location.href='index.html'" style="background:none; border:none; color:#555;">Exit to Hub</button>
+    </div>
+
+<script>
+    const { insertCoin, setState, getState, myPlayer } = Playroom;
+    let board = Array(9).fill("");
+    let isBot = false;
+    let mySymbol = "X"; // Online: Player 1 is X, Player 2 is O
+
+    async function start(botMode) {
+        isBot = botMode;
+        document.getElementById('menu').classList.add('hidden');
+        document.getElementById('game').classList.remove('hidden');
+
+        if (!isBot) {
+            document.getElementById('status').innerText = "Connecting...";
+            await insertCoin({ gameId: "lSO33kfiKxPFBkaFheob" });
+            
+            // Sync Board
+            setInterval(() => {
+                const cloudBoard = getState("board");
+                if (cloudBoard) {
+                    board = cloudBoard;
+                    render();
+                    checkWinner();
+                }
+                const turn = getState("turn") || "X";
+                document.getElementById('status').innerText = (turn === "X") ? "X's Turn" : "O's Turn";
+            }, 500);
+        } else {
+            document.getElementById('status').innerText = "Vs Tech4U Bot";
+        }
+        render();
+    }
+
+    function render() {
+        const cells = document.querySelectorAll('.cell');
+        board.forEach((val, i) => {
+            cells[i].innerText = val;
+            cells[i].className = "cell " + val.toLowerCase();
+        });
+    }
+
+    function tap(i) {
+        if (board[i] !== "") return;
+
+        if (isBot) {
+            board[i] = "X";
+            render();
+            if (!checkWinner()) setTimeout(botMove, 500);
+        } else {
+            // Online Logic
+            const currentTurn = getState("turn") || "X";
+            board[i] = currentTurn;
+            setState("board", board);
+            setState("turn", currentTurn === "X" ? "O" : "X");
+        }
+    }
+
+    function botMove() {
+        let empty = board.map((v, i) => v === "" ? i : null).filter(v => v !== null);
+        if (empty.length > 0) {
+            let move = empty[Math.floor(Math.random() * empty.length)];
+            board[move] = "O";
+            render();
+            checkWinner();
+        }
+    }
+
+    function checkWinner() {
+        const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+        for (let p of wins) {
+            if (board[p[0]] && board[p[0]] === board[p[1]] && board[p[0]] === board[p[2]]) {
+                let winner = board[p[0]];
+                alert(winner + " Wins!");
+                if (winner === "X") addCoins(10);
+                reset();
+                return true;
+            }
+        }
+        if (!board.includes("")) { alert("Draw!"); reset(); return true; }
+        return false;
+    }
+
+    function reset() {
+        board = Array(9).fill("");
+        if (!isBot) setState("board", board);
+        render();
+    }
+
+    function addCoins(amt) {
+        let c = parseInt(localStorage.getItem('t4u_coins') || 0);
+        localStorage.setItem('t4u_coins', c + amt);
+        document.getElementById('p-coins').innerText = c + amt;
+    }
+
+    // Load Profile
+    document.getElementById('p-name').innerText = localStorage.getItem('t4u_name') || "Player";
+    document.getElementById('p-coins').innerText = localStorage.getItem('t4u_coins') || 0;
+
+</script>
+</body>
+</html>
