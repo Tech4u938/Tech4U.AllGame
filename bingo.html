@@ -3,113 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tech4U Bingo</title>
+    <title>Tech4U Bingo Safe-Mode</title>
     <script src="https://cdn.jsdelivr.net/npm/playroomkit"></script>
     <style>
         :root { --blue: #00d4ff; --bg: #0a0b10; }
-        body { background: var(--bg); color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 10px; }
-        #bingo-word { font-size: 45px; font-weight: 900; letter-spacing: 12px; margin: 15px; color: #222; display: flex; justify-content: center; }
-        .lit { color: var(--blue) !important; text-shadow: 0 0 15px var(--blue); }
-        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: 95vw; max-width: 400px; margin: 0 auto; }
-        .cell { background: #161b22; height: 65px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: bold; border-radius: 8px; cursor: pointer; }
-        .marked { background: var(--blue) !important; color: black; }
-        .btn { background: var(--blue); color: black; border: none; padding: 18px; border-radius: 12px; font-weight: bold; margin-top: 15px; width: 100%; max-width: 320px; font-size: 18px; }
+        body { background: var(--bg); color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 5px; overflow-x: hidden; }
+        
+        /* Stats Bar */
+        .stats { background: #161b22; padding: 10px; display: flex; justify-content: space-between; border-bottom: 1px solid #333; font-size: 14px; }
+        
+        /* Bingo Letters */
+        #bingo-display { display: flex; justify-content: center; gap: 10px; margin: 10px 0; font-size: 35px; font-weight: 900; color: #222; }
+        .on { color: var(--blue); text-shadow: 0 0 10px var(--blue); }
+
+        /* The 5x5 Grid */
+        #grid { 
+            display: grid; grid-template-columns: repeat(5, 1fr); 
+            gap: 4px; width: 98vw; max-width: 400px; margin: 0 auto; 
+        }
+        .cell { 
+            background: #161b22; aspect-ratio: 1/1; border: 1px solid #333; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 20px; font-weight: bold; border-radius: 4px; 
+        }
+        .marked { background: var(--blue) !important; color: black; border-color: white; }
+
+        /* UI */
+        .btn { background: var(--blue); color: black; border: none; padding: 15px; border-radius: 8px; font-weight: bold; width: 90%; max-width: 300px; margin: 10px auto; font-size: 16px; cursor: pointer; }
         .hidden { display: none !important; }
+        #debug { font-size: 10px; color: #444; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <div id="setup-area">
-        <h2 style="color:var(--blue)">Fill Your Board (1-25)</h2>
-        <div id="grid-setup" class="grid"></div>
-        <button class="btn" onclick="startPlay()">I'M READY TO PLAY</button>
+    <div class="stats">
+        <span>👤 <span id="p-name">Player</span></span>
+        <span>🪙 <span id="p-coins">0</span></span>
     </div>
 
-    <div id="play-area" class="hidden">
-        <div id="bingo-word">
+    <!-- 1. SETUP SCREEN (Visible first) -->
+    <div id="screen-setup">
+        <h2 style="color:var(--blue); margin: 10px 0;">Bingo Board Setup</h2>
+        <p style="font-size:12px; color:#888;">Numbers 1-25 auto-generated. Tap to edit.</p>
+        <div id="grid-setup" class="grid"></div>
+        <button class="btn" onclick="goToPlay()">START MULTIPLAYER</button>
+    </div>
+
+    <!-- 2. PLAY SCREEN (Hidden until ready) -->
+    <div id="screen-play" class="hidden">
+        <div id="bingo-display">
             <span id="L0">B</span><span id="L1">I</span><span id="L2">N</span><span id="L3">G</span><span id="L4">O</span>
         </div>
         <div id="grid-play" class="grid"></div>
-        <button class="btn" onclick="location.href='index.html'" style="background:#222; color:white; margin-top:30px;">EXIT</button>
+        <p id="turn-info" style="color:var(--blue); font-size: 14px; margin-top: 10px;">Connect to sync with friends...</p>
+        <button onclick="location.href='index.html'" style="background:none; border:none; color:#555; margin-top:10px;">Exit Game</button>
     </div>
+
+    <div id="debug">Status: Page Loaded</div>
 
 <script>
     const { insertCoin, setState, getState } = Playroom;
-    let board = [];
-    let marked = [];
+    let myNumbers = [];
+    let markedIndexes = [];
 
-    // FIX: Ensure grid builds on load
-    window.onload = function() {
-        for(let i=1; i<=25; i++) board.push(i);
-        board.sort(() => Math.random() - 0.5);
-        renderSetup();
-    };
+    // --- STEP 1: IMMEDIATELY BUILD SETUP GRID ---
+    function initSetup() {
+        const log = document.getElementById('debug');
+        try {
+            // Generate numbers 1-25
+            for(let i=1; i<=25; i++) myNumbers.push(i);
+            // Shuffle them
+            myNumbers.sort(() => Math.random() - 0.5);
 
-    function renderSetup() {
-        const div = document.getElementById('grid-setup');
-        div.innerHTML = '';
-        board.forEach((num, i) => {
-            const c = document.createElement('div');
-            c.className = "cell";
-            c.innerText = num;
-            c.onclick = () => {
-                let n = prompt("Change number:", num);
-                if(n > 0 && n <= 25) { board[i] = parseInt(n); renderSetup(); }
-            };
-            div.appendChild(c);
-        });
-    }
-
-    async function startPlay() {
-        document.getElementById('setup-area').classList.add('hidden');
-        document.getElementById('play-area').classList.remove('hidden');
-        await insertCoin({ gameId: "lSO33kfiKxPFBkaFheob" });
-        renderPlay();
-        setInterval(sync, 1000);
-    }
-
-    function renderPlay() {
-        const div = document.getElementById('grid-play');
-        div.innerHTML = '';
-        board.forEach((num, i) => {
-            const c = document.createElement('div');
-            c.className = "cell" + (marked.includes(i) ? " marked" : "");
-            c.innerText = num;
-            c.onclick = () => setState("call", num);
-            div.appendChild(c);
-        });
-    }
-
-    function sync() {
-        const call = getState("call");
-        if(call) {
-            let idx = board.indexOf(call);
-            if(idx !== -1 && !marked.includes(idx)) {
-                marked.push(idx);
-                renderPlay();
-                checkWin();
-            }
+            const setupDiv = document.getElementById('grid-setup');
+            setupDiv.innerHTML = '';
+            myNumbers.forEach((num, i) => {
+                const cell = document.createElement('div');
+                cell.className = "cell";
+                cell.innerText = num;
+                cell.onclick = () => {
+                    let val = prompt("Change number:", num);
+                    if(val > 0 && val <= 25) {
+                        myNumbers[i] = parseInt(val);
+                        cell.innerText = val;
+                    }
+                };
+                setupDiv.appendChild(cell);
+            });
+            log.innerText = "Status: Board Ready";
+        } catch (e) {
+            log.innerText = "Error in Setup: " + e.message;
         }
     }
 
+    // --- STEP 2: START PLAYROOM ---
+    async function goToPlay() {
+        document.getElementById('screen-setup').classList.add('hidden');
+        document.getElementById('screen-play').classList.remove('hidden');
+        document.getElementById('debug').innerText = "Status: Connecting to Playroom...";
+
+        try {
+            await insertCoin({ gameId: "lSO33kfiKxPFBkaFheob" });
+            document.getElementById('debug').innerText = "Status: Online";
+            document.getElementById('turn-info').innerText = "Tap a number to call it!";
+            
+            renderPlayGrid();
+
+            // Check for called numbers every second
+            setInterval(() => {
+                const calledNum = getState("calledNumber");
+                if (calledNum) {
+                    let idx = myNumbers.indexOf(calledNum);
+                    if (idx !== -1 && !markedIndexes.includes(idx)) {
+                        markedIndexes.push(idx);
+                        renderPlayGrid();
+                        checkWin();
+                    }
+                }
+            }, 1000);
+
+        } catch (e) {
+            document.getElementById('debug').innerText = "Playroom Error: " + e.message;
+            alert("Working in Offline Mode (Bot Mode)");
+            renderPlayGrid();
+        }
+    }
+
+    // --- STEP 3: RENDER THE ACTIVE GAME ---
+    function renderPlayGrid() {
+        const playDiv = document.getElementById('grid-play');
+        playDiv.innerHTML = '';
+        myNumbers.forEach((num, i) => {
+            const cell = document.createElement('div');
+            cell.className = "cell" + (markedIndexes.includes(i) ? " marked" : "");
+            cell.innerText = num;
+            cell.onclick = () => {
+                setState("calledNumber", num); // Sync with all players
+            };
+            playDiv.appendChild(cell);
+        });
+    }
+
+    // --- STEP 4: BINGO LOGIC (Rows, Cols, Diagonals Only) ---
     function checkWin() {
         let lines = 0;
-        const m = marked;
-        // Rules: Rows, Cols, Diagonals ONLY
-        for(let r=0; r<5; r++) if([0,1,2,3,4].every(i => m.includes(i + r*5))) lines++;
-        for(let c=0; c<5; c++) if([0,5,10,15,20].every(i => m.includes(i + c))) lines++;
-        if([0,6,12,18,24].every(i => m.includes(i))) lines++;
-        if([4,8,12,16,20].every(i => m.includes(i))) lines++;
+        const m = markedIndexes;
 
-        for(let i=0; i<5; i++) if(lines > i) document.getElementById('L'+i).classList.add('lit');
+        // Pattern logic
+        const patterns = [
+            // Rows
+            [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
+            // Cols
+            [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
+            // Diagonals
+            [0,6,12,18,24],[4,8,12,16,20]
+        ];
 
-        if(lines >= 5) {
-            alert("BINGO! You earned 50 Coins!");
+        patterns.forEach(p => {
+            if(p.every(index => m.includes(index))) lines++;
+        });
+
+        // Update Letters
+        for(let i=0; i<5; i++) {
+            if(lines > i) document.getElementById('L'+i).classList.add('on');
+        }
+
+        // Win Condition
+        if (lines >= 5) {
+            alert("BINGO! You earned 100 Tech4U Coins!");
             let c = parseInt(localStorage.getItem('t4u_coins') || 0);
-            localStorage.setItem('t4u_coins', c + 50);
+            localStorage.setItem('t4u_coins', c + 100);
             location.href = 'index.html';
         }
     }
+
+    // Load Profile
+    document.getElementById('p-name').innerText = localStorage.getItem('t4u_name') || "Player";
+    document.getElementById('p-coins').innerText = localStorage.getItem('t4u_coins') || 0;
+
+    // Run setup immediately
+    initSetup();
+
 </script>
 </body>
 </html>
